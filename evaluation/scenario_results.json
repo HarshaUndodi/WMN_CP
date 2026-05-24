@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-05-24T13:57:28.388403",
+  "scenarios": [
+    {
+      "scenario": "Baseline (Normal Operation)",
+      "total_routes": 16,
+      "response_time_get_ms": 0.41,
+      "response_time_loops_ms": 0.24,
+      "response_time_path_ms": 0.21,
+      "loops_detected": false,
+      "best_path": "10.0.4.1 via r1-eth1",
+      "status": "PASS"
+    },
+    {
+      "scenario": "Route Injection (New Route Added)",
+      "baseline_routes": 16,
+      "new_route_count": 17,
+      "detection_latency_ms": 251.66,
+      "tool_response_time_ms": 0.7,
+      "new_route_detected": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "Link Failure (Route Withdrawn)",
+      "baseline_routes": 16,
+      "routes_remaining": 15,
+      "routes_removed": 1,
+      "detection_latency_ms": 252.29,
+      "flap_detected": true,
+      "alternative_path_found": true,
+      "alternative_path": "r2: via directly connected",
+      "response_time_ms": 0.64,
+      "status": "PASS"
+    }
+  ]
+}

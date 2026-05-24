@@ -1,0 +1,133 @@
+{
+  "timestamp": "2026-05-24T13:57:35.447764",
+  "iterations": 10,
+  "psutil_available": true,
+  "tools": [
+    {
+      "tool": "get_routing_table",
+      "iterations": 10,
+      "avg_ms": 0.13,
+      "min_ms": 0.084,
+      "max_ms": 0.319,
+      "all_latencies_ms": [
+        0.319,
+        0.133,
+        0.092,
+        0.176,
+        0.119,
+        0.109,
+        0.087,
+        0.085,
+        0.084,
+        0.097
+      ],
+      "avg_cpu_pct": 0.0,
+      "avg_memory_mb": 14.74
+    },
+    {
+      "tool": "detect_route_flap",
+      "iterations": 10,
+      "avg_ms": 0.004,
+      "min_ms": 0.001,
+      "max_ms": 0.02,
+      "all_latencies_ms": [
+        0.02,
+        0.004,
+        0.003,
+        0.003,
+        0.002,
+        0.001,
+        0.001,
+        0.002,
+        0.002,
+        0.002
+      ],
+      "avg_cpu_pct": 0.0,
+      "avg_memory_mb": 14.77
+    },
+    {
+      "tool": "detect_routing_loops",
+      "iterations": 10,
+      "avg_ms": 0.055,
+      "min_ms": 0.04,
+      "max_ms": 0.073,
+      "all_latencies_ms": [
+        0.073,
+        0.062,
+        0.054,
+        0.052,
+        0.052,
+        0.066,
+        0.057,
+        0.049,
+        0.044,
+        0.04
+      ],
+      "avg_cpu_pct": 0.0,
+      "avg_memory_mb": 14.77
+    },
+    {
+      "tool": "find_best_path",
+      "iterations": 10,
+      "avg_ms": 0.038,
+      "min_ms": 0.034,
+      "max_ms": 0.044,
+      "all_latencies_ms": [
+        0.044,
+        0.042,
+        0.043,
+        0.038,
+        0.034,
+        0.034,
+        0.035,
+        0.035,
+        0.04,
+        0.036
+      ],
+      "avg_cpu_pct": 0.0,
+      "avg_memory_mb": 14.77
+    },
+    {
+      "tool": "compare_snapshots",
+      "iterations": 10,
+      "avg_ms": 1.286,
+      "min_ms": 1.173,
+      "max_ms": 1.629,
+      "all_latencies_ms": [
+        1.208,
+        1.296,
+        1.173,
+        1.182,
+        1.181,
+        1.322,
+        1.185,
+        1.302,
+        1.629,
+        1.384
+      ],
+      "avg_cpu_pct": 0.0,
+      "avg_memory_mb": 14.77
+    },
+    {
+      "tool": "get_topology",
+      "iterations": 10,
+      "avg_ms": 0.035,
+      "min_ms": 0.028,
+      "max_ms": 0.059,
+      "all_latencies_ms": [
+        0.059,
+        0.043,
+        0.033,
+        0.031,
+        0.034,
+        0.03,
+        0.028,
+        0.035,
+        0.028,
+        0.028
+      ],
+      "avg_cpu_pct": 0.0,
+      "avg_memory_mb": 14.77
+    }
+  ]
+}

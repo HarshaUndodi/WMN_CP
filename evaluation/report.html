@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Routing Table Analysis using MCP Resources</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --bg2: #1a1a2e;
+            --bg3: #16213e;
+            --fg: #e0e0e0;
+            --fg2: #a0a0c0;
+            --accent: #00d4aa;
+            --accent2: #5f7cec;
+            --border: #2a2a4a;
+            --code-bg: #0d1117;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.7;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        h1 {
+            font-size: 2em;
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 12px;
+            margin: 30px 0 15px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            color: var(--accent2);
+            margin: 35px 0 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.2em;
+            color: var(--fg);
+            margin: 25px 0 10px;
+        }
+
+        p { margin: 10px 0; color: var(--fg2); }
+
+        strong { color: var(--fg); }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--code-bg);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--fg2);
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: var(--bg3);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+            color: var(--fg2);
+        }
+
+        tr:hover td { background: var(--bg2); }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 30px 0;
+        }
+
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin: 5px 0;
+            color: var(--fg2);
+        }
+
+        figure {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        figcaption {
+            color: var(--fg2);
+            font-size: 0.9em;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        @media print {
+            body { background: white; color: #333; max-width: 100%; }
+            h1 { color: #0a6; }
+            h2 { color: #36c; }
+            pre { border: 1px solid #ccc; }
+            th { background: #eee; color: #333; }
+            td { color: #333; }
+        }
+    </style>
+</head>
+<body>
+<h1>Real-Time Routing Table Analysis using MCP Resources</h1>
+<h2>Course: Wireless Mobile Networks (WMN)</h2>
+<h2>Students: Harshavardhana B Undodi, Sumit Rathod, Anish Shetty and Shashank Bhagoji</h2>
+<h2>Date: May 2026</h2>
+<hr>
+<h2>1. Abstract</h2>
+<p>This project implements a real-time routing table monitoring and analysis system
+using the <strong>Model Context Protocol (MCP)</strong>. The system integrates with a Mininet-WiFi
+network emulator to create a 4-router ring topology, exposes routing data through
+standardized MCP Resources and Tools, and provides an interactive client for querying
+and analyzing network routing behavior. The evaluation demonstrates sub-millisecond
+tool response latencies and effective detection of route injection, link failure, and
+routing anomalies across the emulated network.</p>
+<hr>
+<h2>2. Introduction</h2>
+<h3>2.1 What is MCP (Model Context Protocol)?</h3>
+<p>The <strong>Model Context Protocol (MCP)</strong> is an open protocol developed to provide a
+standardized way for applications to expose structured data (<strong>Resources</strong>) and
+executable functions (<strong>Tools</strong>) to clients. MCP uses a client–server architecture
+where servers publish capabilities via a discovery mechanism, and clients connect
+to consume them. Communication can occur over stdio, HTTP/SSE, or WebSocket
+transports.</p>
+<ul>Key MCP concepts:
+<li><strong>Resources</strong> — Read-only data endpoints identified by URIs (e.g., <code>routing://table/live</code>)</li>
+<li><strong>Tools</strong> — Executable functions that clients can invoke with parameters</li>
+<li><strong>Transports</strong> — Communication channels (stdio, HTTP, WebSocket)</li></ul>
+<h3>2.2 Why Routing Table Analysis Matters</h3>
+<p>In wireless mobile networks, routing tables are dynamic and can change rapidly due to
+node mobility, link quality variations, and topology changes. Real-time monitoring of
+routing tables is essential for:</p>
+<li><strong>Detecting route instability</strong> (route flaps) that degrade network performance</li>
+<li><strong>Identifying routing loops</strong> that cause packet loss and increased latency</li>
+<li><strong>Analyzing convergence time</strong> after topology changes</li>
+<li><strong>Optimizing path selection</strong> in multi-path routing environments</li>
+<h3>2.3 Problem Statement</h3>
+<p>Traditional routing table monitoring relies on periodic manual inspection using
+command-line tools like <code>ip route show</code>. This approach lacks:</p>
+<li>Structured data access across multiple routers simultaneously</li>
+<li>Historical tracking and comparison of routing states</li>
+<li>Automated anomaly detection (flaps, loops)</li>
+<li>A standardized API for tool integration</li>
+<p>This project addresses these gaps by wrapping routing table data in the MCP protocol,
+enabling real-time, programmatic access to routing information across a multi-router
+topology.</p>
+<hr>
+<h2>3. System Architecture</h2>
+<h3>3.1 Architecture Diagram</h3>
+<pre><code class="language-">┌─────────────────────────────────────────────────────────────────────────┐
+│                         SYSTEM ARCHITECTURE                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│  ┌────────────────────┐   stdio    ┌───────────────────────────────┐   │
+│  │    MCP Client       │◄─────────►│     MCP Server (FastMCP)      │   │
+│  │  (mcp_client.py)    │           │    (mcp_server.py)            │   │
+│  │                     │           │                               │   │
+│  │  Interactive CLI:   │           │  Resources:                   │   │
+│  │  • get routes       │           │  • routing://table/live       │   │
+│  │  • get router r1    │           │  • routing://table/{router} │   │
+│  │  • detect loops     │           │  • routing://table/history    │   │
+│  │  • show topology    │           │  • routing://topology         │   │
+│  │  • find path        │           │                               │   │
+│  │  • show events      │           │  Tools:                       │   │
+│  └────────────────────┘           │  • get_routing_table()        │   │
+│                                    │  • get_router_table()         │   │
+│                                    │  • detect_route_flap()        │   │
+│                                    │  • detect_routing_loops()     │   │
+│                                    │  • compare_snapshots()        │   │
+│                                    │  • find_best_path()           │   │
+│                                    │  • get_topology()             │   │
+│                                    │  • get_route_events()         │   │
+│                                    └──────────┬────────────────────┘   │
+│                                               │                        │
+│                                    ┌──────────▼────────────────────┐   │
+│                                    │  Routing Poller               │   │
+│                                    │  (routing_poller.py)          │   │
+│                                    │                               │   │
+│                                    │  Reads: routing_tables.json   │   │
+│                                    │  Polls every 5 seconds        │   │
+│                                    │  Falls back to ip route / mock│   │
+│                                    └──────────┬────────────────────┘   │
+│                                               │                        │
+│                                    ┌──────────▼────────────────────┐   │
+│                                    │  Mininet-WiFi Topology        │   │
+│                                    │  (mininet_topology.py)        │   │
+│                                    │                               │   │
+│                                    │    r1 ──── r2                 │   │
+│                                    │    |        |     Ring         │   │
+│                                    │    r4 ──── r3   Topology      │   │
+│                                    │                               │   │
+│                                    │  Subnets: 10.0.1-4.0/24      │   │
+│                                    └──────────────────────────────┘   │
+│                                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>3.2 MCP Resources</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>Resource URI</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>routing://table/live</code></td><td>Latest routing table snapshot (all routers)</td></tr>
+<tr><td><code>routing://table/history/{timestamp}</code></td><td>Historical snapshot by timestamp</td></tr>
+<tr><td><code>routing://table/{router_id}</code></td><td>Routing table for a specific router (r1–r4)</td></tr>
+<tr><td><code>routing://topology</code></td><td>Full network topology graph</td></tr>
+</tbody></table></div>
+<h3>3.3 MCP Tools</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>Tool</th><th>Parameters</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><code>get_routing_table()</code></td><td>none</td><td>Returns all routes across all routers</td></tr>
+<tr><td><code>get_router_table(router_id)</code></td><td>router_id: str</td><td>Returns routes for a specific router</td></tr>
+<tr><td><code>detect_route_flap()</code></td><td>none</td><td>Detects routes changing >3× in 60s</td></tr>
+<tr><td><code>detect_routing_loops()</code></td><td>none</td><td>Checks for forwarding loops</td></tr>
+<tr><td><code>compare_snapshots(ts1, ts2)</code></td><td>two timestamps</td><td>Diffs two historical snapshots</td></tr>
+<tr><td><code>find_best_path(destination)</code></td><td>destination prefix</td><td>Finds lowest-metric next-hop</td></tr>
+<tr><td><code>get_topology()</code></td><td>none</td><td>Returns network topology graph</td></tr>
+<tr><td><code>get_route_events()</code></td><td>none</td><td>Returns recent route-change events</td></tr>
+</tbody></table></div>
+<hr>
+<h2>4. Implementation Details</h2>
+<h3>4.1 Technology Stack</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>Technology</th><th>Version</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Python</td><td>3.12</td><td>Core programming language</td></tr>
+<tr><td>FastMCP</td><td>3.3.1</td><td>MCP server framework</td></tr>
+<tr><td>MCP SDK</td><td>1.27</td><td>MCP client library</td></tr>
+<tr><td>Mininet-WiFi</td><td>2.7</td><td>Network topology emulation</td></tr>
+<tr><td>NetworkX</td><td>3.6</td><td>Graph analysis and topology visualization</td></tr>
+<tr><td>Matplotlib</td><td>3.10</td><td>Chart and graph generation</td></tr>
+<tr><td>asyncio</td><td>stdlib</td><td>Asynchronous I/O for background polling</td></tr>
+<tr><td>psutil</td><td>7.0+</td><td>CPU and memory usage measurement</td></tr>
+</tbody></table></div>
+<h3>4.2 Key Files</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>File</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td><code>server/mcp_server.py</code></td><td>FastMCP server with resources, tools, and poller</td></tr>
+<tr><td><code>server/routing_poller.py</code></td><td>Multi-source routing data poller</td></tr>
+<tr><td><code>client/mcp_client.py</code></td><td>Interactive CLI client</td></tr>
+<tr><td><code>network/mininet_topology.py</code></td><td>Mininet ring topology (4 routers)</td></tr>
+<tr><td><code>network/route_visualizer.py</code></td><td>Topology graph visualization</td></tr>
+<tr><td><code>evaluation/scenario_runner.py</code></td><td>3-scenario evaluation runner</td></tr>
+<tr><td><code>evaluation/performance_metrics.py</code></td><td>Tool latency benchmarking</td></tr>
+<tr><td><code>evaluation/generate_charts.py</code></td><td>Chart generation for report</td></tr>
+</tbody></table></div>
+<h3>4.3 Background Polling Mechanism</h3>
+<p>The MCP server runs a background polling task using Python's <code>asyncio</code>:</p>
+<li>Every <strong>5 seconds</strong>, the poller reads <code>routing_tables.json</code></li>
+<li>If the JSON file is fresh (modified within 30 seconds), it uses that data</li>
+<li>If not, it falls back to <code>ip route show</code> system command</li>
+<li>If both fail, it uses built-in mock data for testing</li>
+<p>Each poll result is stored as a <strong>snapshot</strong> with an ISO timestamp key, building
+a time-series history of routing table states.</p>
+<h3>4.4 Route Change Detection</h3>
+<p>When a new poll returns different data from the previous poll, the server:</p>
+<li>Compares each route's gateway, interface, and metric with the previous snapshot</li>
+<li>Logs a <strong>route_changed</strong> event with before/after values</li>
+<li>Tracks <strong>route_added</strong> and <strong>route_removed</strong> events</li>
+<li>Maintains a change log for <strong>flap detection</strong> (>3 changes in 60 seconds)</li>
+<hr>
+<h2>5. Evaluation</h2>
+<h3>5.1 Test Scenarios</h3>
+<p>Three evaluation scenarios were designed to test the system under different
+network conditions:</p>
+<p><strong>Scenario 1 — Baseline (Normal Operation):</strong>
+Tests the system under stable conditions with 4 routers and 16 static routes.
+Measures baseline response latency and verifies loop detection.</p>
+<p><strong>Scenario 2 — Route Injection (New Route Added):</strong>
+Simulates adding a new route (192.168.99.0/24) to router r1. Measures how
+quickly the MCP server detects and reports the change.</p>
+<p><strong>Scenario 3 — Link Failure (Route Withdrawn):</strong>
+Simulates failure of the r1–r2 link by removing routes with gateway 10.0.1.2.
+Tests flap detection and verifies that alternative paths are found.</p>
+<h3>5.2 Scenario Results</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>Scenario</th><th>Routes</th><th>Detection Latency</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Baseline (Normal Operation)</td><td>16</td><td>0.4 ms</td><td>PASS</td></tr>
+<tr><td>Route Injection (New Route Add</td><td>17</td><td>251.7 ms</td><td>PASS</td></tr>
+<tr><td>Link Failure (Route Withdrawn)</td><td>15</td><td>252.3 ms</td><td>PASS</td></tr>
+</tbody></table></div>
+<h3>5.3 Performance Benchmarks</h3>
+<p>Each tool was executed <strong>10 times</strong> and the latency was measured:</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>Tool</th><th>Avg (ms)</th><th>Min (ms)</th><th>Max (ms)</th><th>CPU %</th><th>Mem (MB)</th></tr></thead>
+<tbody>
+<tr><td>get_routing_table</td><td>0.130</td><td>0.084</td><td>0.319</td><td>0.0%</td><td>14.7</td></tr>
+<tr><td>detect_route_flap</td><td>0.004</td><td>0.001</td><td>0.020</td><td>0.0%</td><td>14.8</td></tr>
+<tr><td>detect_routing_loops</td><td>0.055</td><td>0.040</td><td>0.073</td><td>0.0%</td><td>14.8</td></tr>
+<tr><td>find_best_path</td><td>0.038</td><td>0.034</td><td>0.044</td><td>0.0%</td><td>14.8</td></tr>
+<tr><td>compare_snapshots</td><td>1.286</td><td>1.173</td><td>1.629</td><td>0.0%</td><td>14.8</td></tr>
+<tr><td>get_topology</td><td>0.035</td><td>0.028</td><td>0.059</td><td>0.0%</td><td>14.8</td></tr>
+</tbody></table></div>
+<h3>5.4 Evaluation Charts</h3>
+<p>The following charts visualize the evaluation results:</p>
+<p><strong>Chart 1 — MCP Tool Response Latency Comparison</strong></p>
+<figure><img src="charts/tool_latency.png" alt="Tool Latency"><figcaption>Tool Latency</figcaption></figure>
+<p><strong>Chart 2 — Route Count Over Time (Polling Intervals)</strong></p>
+<figure><img src="charts/route_count_timeline.png" alt="Route Count Timeline"><figcaption>Route Count Timeline</figcaption></figure>
+<p><strong>Chart 3 — Scenario Evaluation Summary</strong></p>
+<figure><img src="charts/scenario_summary.png" alt="Scenario Summary"><figcaption>Scenario Summary</figcaption></figure>
+<hr>
+<h2>6. Results & Analysis</h2>
+<h3>6.1 Key Findings</h3>
+<li><strong>Sub-millisecond tool responses</strong>: Most MCP tools respond in under 5 ms,</li>
+   demonstrating that the protocol overhead is negligible for routing analysis.
+<li><strong>Effective change detection</strong>: Route injection and withdrawal are detected</li>
+   within the polling interval (~250–500 ms in testing), limited primarily by
+   the file I/O polling frequency.
+<li><strong>Correct loop detection</strong>: The system correctly identifies that the ring</li>
+   topology has no forwarding loops with the configured static routes.
+<li><strong>Multi-router visibility</strong>: The MCP Resources provide a unified view of</li>
+   routing tables across all 4 routers simultaneously, which is not possible
+   with traditional per-device <code>ip route show</code> commands.
+<h3>6.2 What Worked Well</h3>
+<li><strong>FastMCP integration</strong>: The FastMCP framework made it straightforward to</li>
+  expose routing data as standardized MCP Resources and Tools.
+<li><strong>Mininet integration</strong>: Real routing tables from Mininet provided realistic</li>
+  test data with proper interfaces and gateway addressing.
+<li><strong>Background polling</strong>: The asyncio-based poller maintained low overhead</li>
+  while providing near-real-time data updates.
+<li><strong>Scenario-based evaluation</strong>: The three test scenarios effectively demonstrate</li>
+  both normal and failure conditions.
+<h3>6.3 Limitations</h3>
+<li><strong>Polling-based detection</strong>: Route changes are detected at the polling interval</li>
+  (5 seconds), not in true real-time. Event-driven Netlink monitoring would
+  reduce latency.
+<li><strong>Static routes only</strong>: The current implementation uses static routes; dynamic</li>
+  routing protocols (OSPF, BGP) would require protocol-specific parsers.
+<li><strong>Single-host topology</strong>: Mininet runs on a single host; distributed multi-host</li>
+  scenarios would require additional infrastructure.
+<li><strong>No persistent storage</strong>: Snapshots are stored in memory and lost on server</li>
+  restart. A database backend would enable long-term analysis.
+<hr>
+<h2>7. Conclusion</h2>
+<h3>7.1 Summary</h3>
+<p>This project successfully demonstrates that the <strong>Model Context Protocol (MCP)</strong>
+can be effectively used for real-time routing table analysis in a network
+environment. The system:</p>
+<li>Exposes <strong>4 MCP Resources</strong> and <strong>8 MCP Tools</strong> for comprehensive routing analysis</li>
+<li>Integrates with <strong>Mininet-WiFi</strong> for realistic network topology emulation</li>
+<li>Achieves <strong>sub-5ms tool response latencies</strong> with minimal resource overhead</li>
+<li>Detects route changes, injections, and failures within the polling interval</li>
+<li>Provides an <strong>interactive CLI</strong> for network operators to query routing data</li>
+<h3>7.2 How MCP Resources Enable Real-Time Network Analysis</h3>
+<p>MCP Resources transform raw routing data into standardized, discoverable endpoints.
+This enables:</p>
+<li><strong>Uniform access patterns</strong> — clients discover and consume routing data</li>
+   through a standard protocol, regardless of the underlying data source
+<li><strong>Tool composability</strong> — analysis tools (flap detection, loop detection,</li>
+   path finding) operate on the same data model
+<li><strong>Historical analysis</strong> — timestamped snapshots enable comparison and</li>
+   trend detection across time
+<h3>7.3 Future Work</h3>
+<li><strong>OSPF/BGP integration</strong>: Parse live OSPF LSA databases and BGP RIBs for</li>
+  dynamic routing analysis
+<li><strong>LLM natural language interface</strong>: Add an AI assistant that can answer</li>
+  questions like "Why is traffic to 10.0.3.0/24 going through r4?"
+<li><strong>Netlink event-driven monitoring</strong>: Replace polling with Linux Netlink</li>
+  socket monitoring for true real-time detection
+<li><strong>Web dashboard</strong>: Build a browser-based UI with real-time topology</li>
+  visualization using WebSocket transport
+<li><strong>Distributed deployment</strong>: Support multi-host topologies with</li>
+  federated MCP servers
+<hr>
+<h2>8. References</h2>
+<li>Anthropic, "Model Context Protocol Specification," 2024–2025.</li>
+   Available: https://spec.modelcontextprotocol.io/
+<li>J. Lantz, B. Heller, and N. McKeown, "A Network in a Laptop: Rapid</li>
+   Prototyping for Software-Defined Networking," in Proc. ACM SIGCOMM
+   Workshop on Hot Topics in Networks (HotNets), 2010.
+<li>R. Fontugne, E. Aben, C. Pelsser, and R. Bush, "Pinpointing Delay and</li>
+   Forwarding Anomalies Using Large-Scale Traceroute Measurements," in Proc.
+   ACM Internet Measurement Conference (IMC), 2017.
+<li>A. Feldmann, O. Maennel, Z. M. Mao, A. Berger, and B. Maggs, "Locating</li>
+   Internet Routing Instabilities," in Proc. ACM SIGCOMM, 2004.
+<li>C. Labovitz, G. R. Malan, and F. Jahanian, "Internet Routing Instability,"</li>
+   IEEE/ACM Transactions on Networking, vol. 6, no. 5, pp. 515–528, 1998.
+<li>FastMCP Documentation, "Building MCP Servers in Python," 2025.</li>
+   Available: https://gofastmcp.com/
+<hr>
+<p><em>Report generated on May 24, 2026 at 13:58</em></p>
+</body>
+</html>

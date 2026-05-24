@@ -1,0 +1,106 @@
+{
+  "r1": [
+    {
+      "destination": "10.0.1.0/24",
+      "gateway": "",
+      "interface": "r1-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.2.0/24",
+      "gateway": "10.0.1.2",
+      "interface": "r1-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.3.0/24",
+      "gateway": "10.0.4.1",
+      "interface": "r1-eth1",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.4.0/24",
+      "gateway": "",
+      "interface": "r1-eth1",
+      "metric": 0
+    }
+  ],
+  "r2": [
+    {
+      "destination": "10.0.1.0/24",
+      "gateway": "",
+      "interface": "r2-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.2.0/24",
+      "gateway": "",
+      "interface": "r2-eth1",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.3.0/24",
+      "gateway": "10.0.2.2",
+      "interface": "r2-eth1",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.4.0/24",
+      "gateway": "10.0.1.1",
+      "interface": "r2-eth0",
+      "metric": 0
+    }
+  ],
+  "r3": [
+    {
+      "destination": "10.0.1.0/24",
+      "gateway": "10.0.2.1",
+      "interface": "r3-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.2.0/24",
+      "gateway": "",
+      "interface": "r3-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.3.0/24",
+      "gateway": "",
+      "interface": "r3-eth1",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.4.0/24",
+      "gateway": "10.0.3.2",
+      "interface": "r3-eth1",
+      "metric": 0
+    }
+  ],
+  "r4": [
+    {
+      "destination": "10.0.1.0/24",
+      "gateway": "10.0.4.2",
+      "interface": "r4-eth1",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.2.0/24",
+      "gateway": "10.0.3.1",
+      "interface": "r4-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.3.0/24",
+      "gateway": "",
+      "interface": "r4-eth0",
+      "metric": 0
+    },
+    {
+      "destination": "10.0.4.0/24",
+      "gateway": "",
+      "interface": "r4-eth1",
+      "metric": 0
+    }
+  ]
+}
