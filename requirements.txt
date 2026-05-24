@@ -3,3 +3,5 @@ mcp
 aiohttp
 networkx
 matplotlib
+psutil
+ollama

@@ -88,14 +88,29 @@ parameters. This project provides tools for:
 ```
 routing-mcp-project/
 ├── server/
-│   ├── mcp_server.py          # FastMCP server (resources + tools)
-│   └── routing_poller.py      # Routing table poller (ip route / mock)
+│   ├── mcp_server.py              # FastMCP server (4 resources, 8 tools)
+│   └── routing_poller.py          # Multi-source routing data poller
 ├── client/
-│   └── mcp_client.py          # Interactive MCP client with CLI
+│   ├── mcp_client.py              # Interactive MCP client with CLI
+│   └── nl_client.py               # Natural Language interface (Ollama + MCP)
 ├── network/
-│   └── mininet_topology.py    # Mininet ring topology (4 routers)
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+│   ├── mininet_topology.py        # Mininet ring topology (4 routers)
+│   ├── route_visualizer.py        # Topology graph visualizer
+│   ├── routing_tables.json        # Real Mininet routing data
+│   └── topology_graph.png         # Generated topology graph
+├── evaluation/
+│   ├── scenario_runner.py         # 3-scenario evaluation runner
+│   ├── performance_metrics.py     # Tool latency benchmarks
+│   ├── generate_charts.py         # Chart generation (3 charts)
+│   ├── generate_report.py         # Report generator (MD + HTML)
+│   ├── test_nl_queries.py         # NL query test suite (8 queries)
+│   ├── charts/                    # Generated performance charts
+│   ├── report.md                  # Final report (Markdown)
+│   └── report.html                # Final report (styled HTML)
+├── demo_script.sh                 # Automated demo launcher
+├── run_project.sh                 # One-command project launcher
+├── requirements.txt               # Python dependencies
+└── README.md                      # This file
 ```
 
 ---
@@ -209,6 +224,57 @@ mcp> list tools
 ```
 mcp> quit
 ```
+
+---
+
+## 🤖 Natural Language Interface (Ollama + MCP)
+
+Ask questions about your network in plain English! An Ollama model (`llama3.2:1b`)
+pre-fetches all MCP tool results at startup, then answers queries in a single shot.
+
+### Requirements
+- Ollama installed (`curl -fsSL https://ollama.com/install.sh | sh`)
+- `llama3.2:1b` model downloaded (`ollama pull llama3.2:1b`)
+- Ollama service running (`ollama serve`)
+
+### How to Run
+```bash
+venv/bin/python3 client/nl_client.py
+```
+
+### Example Session
+```
+🔹 Ask > How many routers are in the network?
+🤔 Thinking... (5.8s)
+🤖 There are 4 routers (r1, r2, r3, r4) in the Mininet network.
+
+🔹 Ask > Are there any route flaps?
+🤔 Thinking... (6.2s)
+🤖 No, there are no route flaps detected in the network topology.
+
+🔹 Ask > Show me the routing table for r1
+🤔 Thinking... (25.3s)
+🤖 r1 (4 routes):
+    10.0.1.0/24 → directly connected via r1-eth0
+    10.0.2.0/24 → 10.0.1.2 via r1-eth0
+    10.0.3.0/24 → 10.0.4.1 via r1-eth1
+    10.0.4.0/24 → directly connected via r1-eth1
+```
+
+### Special Commands
+| Command   | Description                            |
+|-----------|----------------------------------------|
+| `tools`   | List all available MCP tools           |
+| `context` | Show the pre-fetched network data      |
+| `refresh` | Re-fetch latest data from MCP server   |
+| `quit`    | Exit the assistant                     |
+
+### How It Works
+1. On startup, `nl_client.py` calls **all 5 MCP tools** (routes, loops, flaps, topology, events)
+2. Results are compressed into a compact text summary (~500 bytes)
+3. When the user asks a question, Ollama receives the full context + question in one prompt
+4. The model generates a single-shot answer — no round-trips, no tool-call parsing
+5. Type `refresh` to re-fetch the latest network state
 
 ---
 
