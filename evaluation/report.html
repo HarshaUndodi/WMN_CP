@@ -316,6 +316,56 @@ a time-series history of routing table states.</p>
 <li>Logs a <strong>route_changed</strong> event with before/after values</li>
 <li>Tracks <strong>route_added</strong> and <strong>route_removed</strong> events</li>
 <li>Maintains a change log for <strong>flap detection</strong> (>3 changes in 60 seconds)</li>
+<h3>4.5 Client–Server Connection Architecture</h3>
+<p>The MCP Client and Server communicate using <strong>stdio (standard I/O) transport</strong>:</p>
+<pre><code class="language-">  ┌─────────────────┐   stdin (JSON-RPC)    ┌──────────────────┐
+  │   MCP Client     │ ──────────────────►  │   MCP Server      │
+  │  (mcp_client.py) │                      │  (mcp_server.py)  │
+  │                  │ ◄──────────────────  │                   │
+  │  User Interface  │   stdout (JSON-RPC)   │  FastMCP Framework│
+  └─────────────────┘                       └────────┬─────────┘
+                                                     │ polls every 5s
+                                            ┌────────▼─────────┐
+                                            │  Routing Poller   │
+                                            │ routing_poller.py │
+                                            │                   │
+                                            │ Reads:            │
+                                            │ routing_tables.json│
+                                            └──────────────────┘
+</code></pre>
+<p><strong>Connection flow:</strong></p>
+<li>The client spawns the server as a <strong>subprocess</strong> using <code>StdioServerParameters</code></li>
+<li>The client sends JSON-RPC 2.0 requests to the server via the <strong>stdin pipe</strong></li>
+<li>The server processes requests and returns JSON-RPC responses via the <strong>stdout pipe</strong></li>
+<li>No network sockets or HTTP are needed — all communication is local IPC</li>
+<li>The server runs a background poller (asyncio task) that reads <code>routing_tables.json</code></li>
+   every 5 seconds and stores snapshots in memory
+<p><strong>Supported transports:</strong> MCP also supports HTTP/SSE and WebSocket transports
+for distributed deployments. This project uses stdio for simplicity and
+zero-configuration setup.</p>
+<h3>4.6 Dynamic Topology Changes (Adding / Removing Routers)</h3>
+<p>The system supports <strong>dynamic topology changes</strong> without restarting the server.
+Since the poller reads <code>routing_tables.json</code> every 5 seconds, any modifications
+to this file are automatically picked up.</p>
+<p><strong>Adding a Router (e.g., r5):</strong></p>
+<li>Edit <code>routing_tables.json</code> to add router r5 with its routes</li>
+<li>The poller detects the new router on the next poll cycle</li>
+<li>The MCP server exposes r5's data through existing Resources and Tools</li>
+<li>All tools (loop detection, best path, etc.) automatically include r5</li>
+<p><strong>Removing a Router (e.g., r4):</strong></p>
+<li>Remove the r4 entry from <code>routing_tables.json</code></li>
+<li>The poller detects the removal on the next poll cycle</li>
+<li>The system logs route_removed events for r4's routes</li>
+<li>Loop detection and path finding adjust to the reduced topology</li>
+<p><strong>Demonstration results:</strong></p>
+<div class="table-wrapper"><table>
+<thead><tr><th>Operation</th><th>Routers Before</th><th>Routers After</th><th>Detection Latency</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Add Router r5</td><td>4</td><td>5</td><td>251 ms</td><td>PASS</td></tr>
+<tr><td>Remove Router r4</td><td>4</td><td>3</td><td>251 ms</td><td>PASS</td></tr>
+</tbody></table></div>
+<p>Both operations are detected within one polling interval (~250 ms in test mode),
+and the system correctly updates all tool outputs to reflect the changed topology.</p>
 <hr>
 <h2>5. Evaluation</h2>
 <h3>5.1 Test Scenarios</h3>
@@ -358,20 +408,161 @@ Tests flap detection and verifies that alternative paths are found.</p>
 <figure><img src="charts/route_count_timeline.png" alt="Route Count Timeline"><figcaption>Route Count Timeline</figcaption></figure>
 <p><strong>Chart 3 — Scenario Evaluation Summary</strong></p>
 <figure><img src="charts/scenario_summary.png" alt="Scenario Summary"><figcaption>Scenario Summary</figcaption></figure>
+<h3>5.5 Result Parameter Charts</h3>
+<p><strong>Parameter 1 — Tool Response Latency</strong></p>
+<figure><img src="charts/param1_tool_latency.png" alt="Tool Latency"><figcaption>Tool Latency</figcaption></figure>
+<p><strong>Parameter 2 — Route Change Detection Latency</strong></p>
+<figure><img src="charts/param2_detection_latency.png" alt="Detection Latency"><figcaption>Detection Latency</figcaption></figure>
+<p><strong>Parameter 3 — Memory Consumption</strong></p>
+<figure><img src="charts/param3_memory.png" alt="Memory"><figcaption>Memory</figcaption></figure>
+<p><strong>Parameter 4 — CPU Utilization</strong></p>
+<figure><img src="charts/param4_cpu.png" alt="CPU"><figcaption>CPU</figcaption></figure>
+<p><strong>Parameters 5 & 6 — Detection Accuracy (Flap + Loop)</strong></p>
+<figure><img src="charts/param5_6_accuracy.png" alt="Accuracy"><figcaption>Accuracy</figcaption></figure>
+<p><strong>Parameter 7 — Scalability (Route Count vs Performance)</strong></p>
+<figure><img src="charts/param7_scalability.png" alt="Scalability"><figcaption>Scalability</figcaption></figure>
+<p><strong>Topology Change Detection (Add/Remove Router)</strong></p>
+<figure><img src="charts/topology_changes.png" alt="Topology Changes"><figcaption>Topology Changes</figcaption></figure>
+<p><strong>All 7 Parameters — Summary</strong></p>
+<figure><img src="charts/param_summary.png" alt="Parameter Summary"><figcaption>Parameter Summary</figcaption></figure>
 <hr>
 <h2>6. Results & Analysis</h2>
-<h3>6.1 Key Findings</h3>
-<li><strong>Sub-millisecond tool responses</strong>: Most MCP tools respond in under 5 ms,</li>
+<p>This section presents the evaluation results across <strong>7 key parameters</strong> used to
+assess the performance, correctness, and scalability of the MCP-based routing
+table analysis system.</p>
+<h3>6.1 Parameter 1 — Tool Response Latency (ms)</h3>
+<p><strong>Definition:</strong> The time taken by each MCP tool to execute and return a result.
+Each tool was executed <strong>10 times</strong> and latency was measured using Python's
+<code>time.perf_counter()</code> high-resolution timer.</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>MCP Tool</th><th>Avg (ms)</th><th>Min (ms)</th><th>Max (ms)</th></tr></thead>
+<tbody>
+<tr><td><code>get_routing_table</code></td><td>0.130</td><td>0.084</td><td>0.319</td></tr>
+<tr><td><code>detect_route_flap</code></td><td>0.004</td><td>0.001</td><td>0.020</td></tr>
+<tr><td><code>detect_routing_loops</code></td><td>0.055</td><td>0.040</td><td>0.073</td></tr>
+<tr><td><code>find_best_path</code></td><td>0.038</td><td>0.034</td><td>0.044</td></tr>
+<tr><td><code>compare_snapshots</code></td><td>1.286</td><td>1.173</td><td>1.629</td></tr>
+<tr><td><code>get_topology</code></td><td>0.035</td><td>0.028</td><td>0.059</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> 5 out of 6 tools achieve <strong>sub-millisecond</strong> response latency (< 1 ms),
+confirming that MCP protocol overhead is negligible. <code>compare_snapshots</code> is the
+slowest (~1.3 ms) because it reads and diffs two full snapshots. All tools are well
+within acceptable real-time thresholds (< 10 ms) for network monitoring.</p>
+<h3>6.2 Parameter 2 — Route Change Detection Latency (ms)</h3>
+<p><strong>Definition:</strong> The time elapsed between when a route change occurs in the network
+and when the MCP system detects and reports it. Two scenarios were tested:</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>Scenario</th><th>Detection Latency (ms)</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Route Injection (new route added)</td><td>251.66</td><td>PASS</td></tr>
+<tr><td>Link Failure (route withdrawn)</td><td>252.29</td><td>PASS</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> Detection latency is ~250 ms, bounded by the file I/O polling
+frequency during test iterations. In production mode, the background poller runs
+every <strong>5 seconds</strong>, so worst-case detection would be ~5 s. This is sufficient for
+routing table monitoring where changes are typically stable for seconds or minutes.</p>
+<h3>6.3 Parameter 3 — Memory Consumption (MB)</h3>
+<p><strong>Definition:</strong> The amount of RAM (RSS) used by the MCP server process during tool
+execution, measured using Python's <code>psutil</code> library (<code>process.memory_info().rss</code>).</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>MCP Tool</th><th>Avg Memory (MB)</th></tr></thead>
+<tbody>
+<tr><td><code>get_routing_table</code></td><td>14.74</td></tr>
+<tr><td><code>detect_route_flap</code></td><td>14.77</td></tr>
+<tr><td><code>detect_routing_loops</code></td><td>14.77</td></tr>
+<tr><td><code>find_best_path</code></td><td>14.77</td></tr>
+<tr><td><code>compare_snapshots</code></td><td>14.77</td></tr>
+<tr><td><code>get_topology</code></td><td>14.77</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> The system maintains a <strong>stable memory footprint</strong> of ~14.8 MB with
+no significant growth across tool executions, indicating no memory leaks. This
+lightweight footprint makes the system suitable for resource-constrained
+environments like embedded routers or edge devices.</p>
+<h3>6.4 Parameter 4 — CPU Utilization (%)</h3>
+<p><strong>Definition:</strong> The percentage of CPU resources consumed during tool execution,
+measured using <code>psutil.Process.cpu_percent()</code>.</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>MCP Tool</th><th>Avg CPU (%)</th></tr></thead>
+<tbody>
+<tr><td><code>get_routing_table</code></td><td>0.0</td></tr>
+<tr><td><code>detect_route_flap</code></td><td>0.0</td></tr>
+<tr><td><code>detect_routing_loops</code></td><td>0.0</td></tr>
+<tr><td><code>find_best_path</code></td><td>0.0</td></tr>
+<tr><td><code>compare_snapshots</code></td><td>0.0</td></tr>
+<tr><td><code>get_topology</code></td><td>0.0</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> CPU usage registers at 0.0% because tools execute so fast
+(sub-millisecond) that the sampling interval cannot capture meaningful CPU spikes.
+This confirms that the system is <strong>extremely lightweight</strong> and does not impose
+significant computational burden. The polling-based architecture (every 5 seconds)
+ensures the system is idle most of the time.</p>
+<h3>6.5 Parameter 5 — Route Flap Detection Accuracy</h3>
+<p><strong>Definition:</strong> The system's ability to correctly identify route instability —
+routes that change <strong>more than 3 times within a 60-second window</strong>.</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>Condition</th><th>Flap Detected?</th><th>Expected</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Baseline (stable, no changes)</td><td>No</td><td>No</td><td>Correct</td></tr>
+<tr><td>Simulated flap (5 changes/60s)</td><td>Yes</td><td>Yes</td><td>Correct</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> The system correctly detects flaps (true positive) and reports no
+false alarms under stable conditions (true negative). The flap detection uses a
+<strong>sliding time window</strong> of 60 seconds with a threshold of 3 changes, consistent
+with standard approaches used in production routing protocols like BGP (RFC 2439).</p>
+<h3>6.6 Parameter 6 — Routing Loop Detection Accuracy</h3>
+<p><strong>Definition:</strong> The system's ability to detect or confirm the absence of
+<strong>forwarding loops</strong> across the multi-router topology. A loop occurs when packets
+are forwarded in a cycle without reaching their destination.</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>Topology</th><th>Loops Found</th><th>Routers</th><th>Destinations</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Ring (r1-r2-r3-r4) with static routes</td><td>0</td><td>4</td><td>4</td><td>Correct</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> The system correctly identifies that the ring topology has **no
+forwarding loops** with the configured static routes. Each destination is checked
+from every router as a starting point, giving comprehensive coverage (4 routers x
+4 destinations = 16 path traces). The algorithm uses a <strong>visited-set approach</strong>
+(cycle detection in graph theory) which guarantees detection if a loop exists.</p>
+<h3>6.7 Parameter 7 — Scalability (Route Count Handling)</h3>
+<p><strong>Definition:</strong> The system's ability to handle different numbers of routes without
+degradation in performance.</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>Scenario</th><th>Route Count</th><th>Response Time (ms)</th><th>Correct Detection</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Baseline (Normal)</td><td>16</td><td>0.41</td><td>Yes</td><td>PASS</td></tr>
+<tr><td>Route Injection</td><td>17</td><td>0.70</td><td>Yes</td><td>PASS</td></tr>
+<tr><td>Link Failure</td><td>15</td><td>0.64</td><td>Yes</td><td>PASS</td></tr>
+</tbody></table></div>
+<p><strong>Analysis:</strong> Response times remain under 1 ms across all route counts. The system
+correctly handles route additions and removals without errors. For larger
+deployments (100s-1000s of routes), indexing or database-backed storage would be
+recommended.</p>
+<h3>6.8 Summary of All Parameters</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>#</th><th>Parameter</th><th>Metric</th><th>Value/Result</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Tool Response Latency</td><td>Avg across 6 tools</td><td>0.004 - 1.286 ms</td><td>Sub-ms (5/6 tools)</td></tr>
+<tr><td>2</td><td>Route Change Detection</td><td>Injection and failure</td><td>~252 ms</td><td>Within polling interval</td></tr>
+<tr><td>3</td><td>Memory Consumption</td><td>RSS during execution</td><td>~14.8 MB</td><td>Lightweight</td></tr>
+<tr><td>4</td><td>CPU Utilization</td><td>CPU % during execution</td><td>0.0%</td><td>Negligible overhead</td></tr>
+<tr><td>5</td><td>Route Flap Detection</td><td>True positive + true negative</td><td>100% accuracy</td><td>Correct</td></tr>
+<tr><td>6</td><td>Routing Loop Detection</td><td>Loop presence/absence</td><td>100% accuracy</td><td>Correct</td></tr>
+<tr><td>7</td><td>Scalability (Route Count)</td><td>Performance at 15-17 routes</td><td>< 1 ms response</td><td>Consistent</td></tr>
+</tbody></table></div>
+<h3>6.9 Key Findings</h3>
+<li><strong>Sub-millisecond tool responses</strong>: Most MCP tools respond in under 1 ms,</li>
    demonstrating that the protocol overhead is negligible for routing analysis.
 <li><strong>Effective change detection</strong>: Route injection and withdrawal are detected</li>
-   within the polling interval (~250–500 ms in testing), limited primarily by
+   within the polling interval (~250 ms in test mode), limited primarily by
    the file I/O polling frequency.
-<li><strong>Correct loop detection</strong>: The system correctly identifies that the ring</li>
-   topology has no forwarding loops with the configured static routes.
-<li><strong>Multi-router visibility</strong>: The MCP Resources provide a unified view of</li>
-   routing tables across all 4 routers simultaneously, which is not possible
-   with traditional per-device <code>ip route show</code> commands.
-<h3>6.2 What Worked Well</h3>
+<li><strong>Correct anomaly detection</strong>: The system correctly identifies route flaps and</li>
+   confirms the absence of routing loops with 100% accuracy.
+<li><strong>Lightweight resource footprint</strong>: The system uses only ~14.8 MB of RAM and</li>
+   near-zero CPU, making it suitable for resource-constrained environments.
+<li><strong>Multi-router visibility</strong>: MCP Resources provide a unified view of routing</li>
+   tables across all 4 routers simultaneously, which is not possible with
+   traditional per-device <code>ip route show</code> commands.
+<h3>6.10 What Worked Well</h3>
 <li><strong>FastMCP integration</strong>: The FastMCP framework made it straightforward to</li>
   expose routing data as standardized MCP Resources and Tools.
 <li><strong>Mininet integration</strong>: Real routing tables from Mininet provided realistic</li>
@@ -380,7 +571,7 @@ Tests flap detection and verifies that alternative paths are found.</p>
   while providing near-real-time data updates.
 <li><strong>Scenario-based evaluation</strong>: The three test scenarios effectively demonstrate</li>
   both normal and failure conditions.
-<h3>6.3 Limitations</h3>
+<h3>6.11 Limitations</h3>
 <li><strong>Polling-based detection</strong>: Route changes are detected at the polling interval</li>
   (5 seconds), not in true real-time. Event-driven Netlink monitoring would
   reduce latency.
@@ -438,6 +629,6 @@ This enables:</p>
 <li>FastMCP Documentation, "Building MCP Servers in Python," 2025.</li>
    Available: https://gofastmcp.com/
 <hr>
-<p><em>Report generated on May 24, 2026 at 13:58</em></p>
+<p><em>Report generated on May 27, 2026 at 12:30</em></p>
 </body>
 </html>

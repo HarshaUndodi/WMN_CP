@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-05-27T12:24:03.616529",
+  "demos": [
+    {
+      "demo": "Add Router r5",
+      "routers_before": 4,
+      "routers_after": 5,
+      "routes_before": 16,
+      "routes_after": 26,
+      "router_detected": true,
+      "detection_latency_ms": 252.7,
+      "status": "PASS"
+    },
+    {
+      "demo": "Remove Router r4",
+      "routers_before": 4,
+      "routers_after": 3,
+      "routes_before": 16,
+      "routes_after": 10,
+      "router_removed": true,
+      "detection_latency_ms": 251.66,
+      "status": "PASS"
+    }
+  ]
+}
